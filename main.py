@@ -3,6 +3,7 @@ from aiogram import Bot, Dispatcher
 import asyncio
 import logging
 import sys
+import re
 from os import getenv
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Bot, Dispatcher, html
@@ -30,28 +31,45 @@ class UserStates(StatesGroup):
 
 @dp.message(CommandStart())
 async def command_start_handler(message: types.Message) -> None:
-    await message.answer("Теперь вы можете добавлять транзакции")
+    await message.answer("Теперь вы можете добавлять и искать транзакции")
 
+@dp.message(Command('help'))
+async def command_help_handler(message: types.Message) -> None:
+    await message.answer('Чтобы создать транзакцию используйте команду "/create", и после ответа от бота отправьте описание транзакции в формате: *имя_катеории*.*цена_транзакции*.*комментарий* Пример: Еда.2500.сходил в ресторан\nЧтобы найти транзакции используйте команду "/search", и после ответа от бота отправьте описание транзакций в формате: *имя_катеории*.*месяц совершения*.*год совершения*.*тип вывода - список или сумма* Пример: еда.5.2024.сумма')
 
 @dp.message(Command('create'))
 async def initiate_creation(message: types.Message, state: FSMContext) -> None:
     await state.set_state(UserStates.creating_tranaction)
-    await message.answer('Отправьте описание транзакции в формате: *имя_катеории*.*цена_транзакции*.*комментарий* Пример: Медицина.2500.сдавал кал на анализ')
+    await message.answer('Отправьте описание транзакции')
 
 @dp.message(UserStates.creating_tranaction)
 async def create_transaction(message: types.Message, state: FSMContext) -> None:
+    pattern = r'^.{1,30}\.\d{1,9}\..{0,140}\.\d{1,2}\.\d{1,9}$'
+    dateless_pattern = r'^.{1,30}\.\d{1,9}\..{0,140}$'
     if message.text == '/cancel':
         await state.set_state(UserStates.standart_state)
         return
+    if re.match(pattern, message.text):
+        pass
+    elif re.match(dateless_pattern, message.text) and not re.search(r'\.\w+$', message.text):
+        pass
+    else:
+        await message.answer('Вы неправильно описали транзакцию, бот умер, попытайтесь снова')
+        await state.set_state(UserStates.standart_state)
+        return
     arr = message.text.lower().split('.')
+    if len(arr) < 5:
+        arr.append(datetime.now().date().month)
+        arr.append(datetime.now().date().year)
     collection.insert_one({
-        'month': datetime.now().date().month,
-        'year': datetime.now().date().year,
+        'month': int(arr[3]),
+        'year': int(arr[4]),
         'user_id': message.from_user.id,
         'category': arr[0],
         'value': arr[1],
         'commentary': arr[2]
     })
+    await message.answer('Транзакция добавлена')
     await state.set_state(UserStates.standart_state)
 
 
@@ -63,7 +81,7 @@ async def create_transaction(message: types.Message, state: FSMContext) -> None:
 @dp.message(Command('search'))
 async def initiate_search(message: types.Message, state: FSMContext) -> None:
     await state.set_state(UserStates.searching_tranactions)
-    await message.answer('Отправьте описание транзакций в формате: *имя_катеории*.*месяц совершения*.*год совершения*.*тип вывода - список или сумма* Пример: Медицина.5.2024.сумма')
+    await message.answer('')
 
 
 @dp.message(UserStates.searching_tranactions)
