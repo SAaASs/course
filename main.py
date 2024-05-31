@@ -54,7 +54,7 @@ async def create_transaction(message: types.Message, state: FSMContext) -> None:
     elif re.match(dateless_pattern, message.text) and not re.search(r'\.\w+$', message.text):
         pass
     else:
-        await message.answer('Вы неправильно описали транзакцию, бот умер, попытайтесь снова')
+        await message.answer('Вы неправильно описали транзакцию, бот умер от кринжа, попытайтесь снова')
         await state.set_state(UserStates.standart_state)
         return
     arr = message.text.lower().split('.')
