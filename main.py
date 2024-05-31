@@ -31,7 +31,7 @@ class UserStates(StatesGroup):
 
 @dp.message(CommandStart())
 async def command_start_handler(message: types.Message) -> None:
-    await message.answer("Теперь вы можете добавлять и искать транзакции")
+    await message.answer("Теперь вы можете добавлять и искать транзакции\n Используйте команду /help чтобы помощь")
 
 @dp.message(Command('help'))
 async def command_help_handler(message: types.Message) -> None:
@@ -86,6 +86,17 @@ async def initiate_search(message: types.Message, state: FSMContext) -> None:
 
 @dp.message(UserStates.searching_tranactions)
 async def find_tranaction(message: types.Message, state: FSMContext) -> None:
+    pattern = r'^[^.\n]{1,30}\.(?:\d{1,2}|нет)\.(?:\d{1,6}|нет)\.(список|сумма)$'
+    if message.text == '/cancel':
+        await state.set_state(UserStates.standart_state)
+        return
+
+    if re.match(pattern, message.text):
+        pass
+    else:
+        await message.answer('Вы неправильно описали шаблон поиска, бот умер от кринжа, попытайтесь снова')
+        await state.set_state(UserStates.standart_state)
+        return
     text = message.text.lower().replace('нет', '_')
     arr = text.split('.')
     if arr[1] != "_":
