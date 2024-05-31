@@ -81,7 +81,7 @@ async def create_transaction(message: types.Message, state: FSMContext) -> None:
 @dp.message(Command('search'))
 async def initiate_search(message: types.Message, state: FSMContext) -> None:
     await state.set_state(UserStates.searching_tranactions)
-    await message.answer('')
+    await message.answer('Отправьте описание транзакции')
 
 
 @dp.message(UserStates.searching_tranactions)
