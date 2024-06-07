@@ -1,4 +1,3 @@
-from pymongo import MongoClient
 from aiogram import Bot, Dispatcher
 import asyncio
 import logging
@@ -14,13 +13,9 @@ from aiogram.filters import CommandStart, Command
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 from datetime import datetime
-client = MongoClient('mongodb://localhost:27017/')
 TOKEN = "7494194851:AAG2rD_yQL03ytHTUxwUzIU80gS_V-suaPk"
 dp = Dispatcher()
 
-db = client['mydatabase']
-
-collection = db['transactions']
 class UserStates(StatesGroup):
     creating_tranaction = State()
     standart_state = State()
