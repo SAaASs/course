@@ -4,7 +4,9 @@ import asyncio
 import logging
 import sys
 import re
-from os import getenv
+import os
+import ydb
+import uuid
 from aiogram.fsm.state import StatesGroup, State
 from aiogram import Bot, Dispatcher, html
 from aiogram.client.default import DefaultBotProperties
@@ -24,6 +26,72 @@ class UserStates(StatesGroup):
     creating_tranaction = State()
     standart_state = State()
     searching_tranactions = State()
+
+
+# Create driver in global space.
+driver = ydb.Driver(
+  endpoint='grpcs://ydb.serverless.yandexcloud.net:2135',
+  database='/ru-central1/b1godpkhv4bhrc2ev0pn/etnu19lcc89d3ftuvqt8',
+  credentials=ydb.AuthTokenCredentials('t1.9euelZqQmZ2ezp6RlcyLnMiLk86Nju3rnpWay8mWmZSYzpuJjciJkp2TjIzl8_cYUXRM-e96ESYi_t3z91h_cUz573oRJiL-zef1656VmpOejZLPm5GJypLLkM6djJ2P7_zF656VmpOejZLPm5GJypLLkM6djJ2P.YrmAkbocQ9b33XzMYW35gl-kvaTrVWsNI3g2L54lJFU_O2TTSAAoIj00m3qbWxZ-xrfIPonGgW4kXLVRRTLJCg'),
+)
+
+driver.wait(fail_fast=True, timeout=5)
+
+pool = ydb.SessionPool(driver)
+def upsert_transaction(session, path, unique_id, category, value, commentary, user_id, month, year):
+    session.transaction().execute(
+        """
+        PRAGMA TablePathPrefix("{}");
+        UPSERT INTO transactions (id, category, value, commentary, user_id, month, year) VALUES
+            ({}, '{}', {}, '{}', {}, {}, {});
+        """.format(path, unique_id, category, value, commentary, user_id, month, year),
+        commit_tx=True,
+    )
+
+def execute_upsert(path, unique_id, category, value, commentary, user_id, month, year):
+    def run(session):
+        upsert_transaction(session, path, unique_id, category, value, commentary, user_id, month, year)
+    pool.retry_operation_sync(run)
+
+
+
+
+
+
+def select_transactions(session, path, arr, user_id):
+
+
+    if arr[1] != "_":
+        arr[1] = int(arr[1])
+    if arr[2] != "_":
+        arr[2] = int(arr[2])
+    for i in range(len(arr)):
+        if isinstance(arr[i], str):
+            arr[i] = f"'{arr[i]}'"
+    keys = ['category', 'month', 'year']
+    query = """
+        PRAGMA TablePathPrefix("{}");
+        SELECT * FROM transactions WHERE user_id = {}
+        """.format(path,user_id)
+    for i in range(len(keys)):
+        if arr[i] != "'_'":
+            query = query + ' AND ' + str(keys[i]) + ' = ' + str(arr[i])
+    query += ';'
+
+
+    #.format(path, user_id, month, year)
+    result = session.transaction().execute(query, commit_tx=True)
+    return result, query
+
+
+# Основная функция для выполнения SELECT запроса с аргументами
+def execute_select(path, arr, user_id):
+    def run(session):
+        result = select_transactions(session, path, arr, user_id)
+        return result
+
+    return pool.retry_operation_sync(run)
+
 
 
 
@@ -61,14 +129,7 @@ async def create_transaction(message: types.Message, state: FSMContext) -> None:
     if len(arr) < 5:
         arr.append(datetime.now().date().month)
         arr.append(datetime.now().date().year)
-    collection.insert_one({
-        'month': int(arr[3]),
-        'year': int(arr[4]),
-        'user_id': message.from_user.id,
-        'category': arr[0],
-        'value': arr[1],
-        'commentary': arr[2]
-    })
+    execute_upsert('/ru-central1/b1godpkhv4bhrc2ev0pn/etnu19lcc89d3ftuvqt8', uuid.uuid4().int & (1 << 64) - 1, arr[0], arr[1], arr[2], message.from_user.id, int(arr[3]), int(arr[4]))
     await message.answer('Транзакция добавлена')
     await state.set_state(UserStates.standart_state)
 
@@ -97,20 +158,14 @@ async def find_tranaction(message: types.Message, state: FSMContext) -> None:
         await message.answer('Вы неправильно описали шаблон поиска, бот умер от кринжа, попытайтесь снова')
         await state.set_state(UserStates.standart_state)
         return
-    text = message.text.lower().replace('нет', '_')
-    arr = text.split('.')
-    if arr[1] != "_":
-        arr[1] = int(arr[1])
-    if arr[2] != "_":
-        arr[2] = int(arr[2])
-    keys = ['category', 'month', 'year']
-    query = {'user_id':  message.from_user.id}
-    for i in range(len(keys)):
-        if arr[i] != "_":
-            query[keys[i]] = arr[i]
-    print('query',query)
-    listik = collection.find(query)
-    if arr[3] == 'список':
+    arr = message.text.lower().replace('нет', '_').split('.')
+    ans_type = arr[-1]
+    print('ans_type', ans_type)
+    user_id = message.from_user.id
+    listik, query = execute_select('/ru-central1/b1godpkhv4bhrc2ev0pn/etnu19lcc89d3ftuvqt8', arr, user_id)
+    listik = listik[0].rows
+
+    if arr[3] == "'список'":
         for i in listik:
             await message.answer("Категория - {}\nМесяц - {}\nСумма - {}.\nКомментарий - {}".format(
             i['category'],
@@ -119,19 +174,20 @@ async def find_tranaction(message: types.Message, state: FSMContext) -> None:
                 i['commentary']
             ))
 
-    elif  arr[3] == 'сумма':
+    elif  arr[3] == "'сумма'":
         summ = 0
 
         for i in listik:
             summ += int(i['value'])
 
         ans = 'Сумарные расходы'
-        if 'category' in query:
-            ans = ans + ' в категории ' + query['category']
-        if 'month' in query:
-            ans = ans + ' за ' + str(query['month'])
-        if 'year' in query:
-            ans = ans + '.' + str(query['year'])
+        print(arr)
+        if arr[0] != "'_'":
+            ans = ans + ' в категории ' + arr[0]
+        if arr[1] != "'_'":
+            ans = ans + ' за ' + arr[1]
+        if arr[2] != "'_'":
+            ans = ans + '.' + arr[2]
         ans = ans + ' составляют ' + str(summ)
         await message.answer(ans)
     await state.set_state(UserStates.standart_state)
