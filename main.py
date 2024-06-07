@@ -4,11 +4,10 @@ import asyncio
 import logging
 import sys
 import re
-import os
 import ydb
 import uuid
 from aiogram.fsm.state import StatesGroup, State
-from aiogram import Bot, Dispatcher, html
+from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command
@@ -27,8 +26,6 @@ class UserStates(StatesGroup):
     standart_state = State()
     searching_tranactions = State()
 
-
-# Create driver in global space.
 driver = ydb.Driver(
   endpoint='grpcs://ydb.serverless.yandexcloud.net:2135',
   database='/ru-central1/b1godpkhv4bhrc2ev0pn/etnu19lcc89d3ftuvqt8',
@@ -79,12 +76,9 @@ def select_transactions(session, path, arr, user_id):
     query += ';'
 
 
-    #.format(path, user_id, month, year)
     result = session.transaction().execute(query, commit_tx=True)
     return result, query
 
-
-# Основная функция для выполнения SELECT запроса с аргументами
 def execute_select(path, arr, user_id):
     def run(session):
         result = select_transactions(session, path, arr, user_id)
@@ -103,7 +97,7 @@ async def command_start_handler(message: types.Message) -> None:
 
 @dp.message(Command('help'))
 async def command_help_handler(message: types.Message) -> None:
-    await message.answer('Чтобы создать транзакцию используйте команду "/create", и после ответа от бота отправьте описание транзакции в формате: *имя_катеории*.*цена_транзакции*.*комментарий* Пример: Еда.2500.сходил в ресторан\nЧтобы найти транзакции используйте команду "/search", и после ответа от бота отправьте описание транзакций в формате: *имя_катеории*.*месяц совершения*.*год совершения*.*тип вывода - список или сумма* Пример: еда.5.2024.сумма')
+    await message.answer('Чтобы создать транзакцию используйте команду "/create", и после ответа от бота отправьте описание транзакции в формате:\n*имя_катеории*.*цена_транзакции*.*комментарий*.*месяц совершения транзакции*.*год совершения транзакции*\nПример: Еда.2500.сходил в ресторан.6.2024\nМесяц и год можно не писать, тогда будет использована текущая дата\nПример: Еда.2500.сходил в ресторан\nЧтобы найти транзакции используйте команду "/search", и после ответа от бота отправьте описание транзакций в формате: *имя_катеории*.*месяц совершения*.*год совершения*.*тип вывода - список или сумма*\nПример: еда.5.2024.сумма')
 
 @dp.message(Command('create'))
 async def initiate_creation(message: types.Message, state: FSMContext) -> None:
@@ -160,7 +154,6 @@ async def find_tranaction(message: types.Message, state: FSMContext) -> None:
         return
     arr = message.text.lower().replace('нет', '_').split('.')
     ans_type = arr[-1]
-    print('ans_type', ans_type)
     user_id = message.from_user.id
     listik, query = execute_select('/ru-central1/b1godpkhv4bhrc2ev0pn/etnu19lcc89d3ftuvqt8', arr, user_id)
     listik = listik[0].rows
@@ -181,7 +174,6 @@ async def find_tranaction(message: types.Message, state: FSMContext) -> None:
             summ += int(i['value'])
 
         ans = 'Сумарные расходы'
-        print(arr)
         if arr[0] != "'_'":
             ans = ans + ' в категории ' + arr[0]
         if arr[1] != "'_'":
@@ -209,9 +201,7 @@ async def find_tranaction(message: types.Message, state: FSMContext) -> None:
 
 
 async def main() -> None:
-    # Initialize Bot instance with default bot properties which will be passed to all API calls
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    # And the run events dispatching
     await dp.start_polling(bot)
 
 
