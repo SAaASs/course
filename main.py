@@ -13,7 +13,6 @@ from aiogram.filters import CommandStart, Command
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 from datetime import datetime
-dp = Dispatcher()
 bot = Bot(token='7321982938:AAHrIf2Cuj0s0_6YxFCLcNeSJdvXYQ63MyU')
 dp = Dispatcher()
 class UserStates(StatesGroup):
@@ -184,26 +183,7 @@ async def find_tranaction(message: types.Message, state: FSMContext) -> None:
 
 
 
-
-
-async def test(event, context):
-    await dp.start_polling(bot)
-
-
-
-
-
-asyncio.run(test({}, {}))
-
-
-
-
-
-
-
-
 async def main() -> None:
-    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     await dp.start_polling(bot)
 
 
