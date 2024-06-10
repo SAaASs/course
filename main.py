@@ -13,9 +13,9 @@ from aiogram.filters import CommandStart, Command
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 from datetime import datetime
-TOKEN = "7494194851:AAG2rD_yQL03ytHTUxwUzIU80gS_V-suaPk"
 dp = Dispatcher()
-
+bot = Bot(token='7321982938:AAHrIf2Cuj0s0_6YxFCLcNeSJdvXYQ63MyU')
+dp = Dispatcher()
 class UserStates(StatesGroup):
     creating_tranaction = State()
     standart_state = State()
@@ -24,7 +24,7 @@ class UserStates(StatesGroup):
 driver = ydb.Driver(
   endpoint='grpcs://ydb.serverless.yandexcloud.net:2135',
   database='/ru-central1/b1godpkhv4bhrc2ev0pn/etnu19lcc89d3ftuvqt8',
-  credentials=ydb.AuthTokenCredentials('t1.9euelZqQmZ2ezp6RlcyLnMiLk86Nju3rnpWay8mWmZSYzpuJjciJkp2TjIzl8_cYUXRM-e96ESYi_t3z91h_cUz573oRJiL-zef1656VmpOejZLPm5GJypLLkM6djJ2P7_zF656VmpOejZLPm5GJypLLkM6djJ2P.YrmAkbocQ9b33XzMYW35gl-kvaTrVWsNI3g2L54lJFU_O2TTSAAoIj00m3qbWxZ-xrfIPonGgW4kXLVRRTLJCg'),
+  credentials=ydb.AuthTokenCredentials('t1.9euelZrJlIrJjpedxpSWzZ6dkMqdz-3rnpWay8mWmZSYzpuJjciJkp2TjIzl8_dZBmNM-e9XTHBD_t3z9xk1YEz571dMcEP-zef1656VmprHno_OnciNlcuPz56Xk8bL7_zF656VmprHno_OnciNlcuPz56Xk8bL.jJxzMdd06gJNGmaT0g_u2yeq9Awt8YQj7RQTn72Z5AsiQllK_sOHlOrkpPzjwItNsyuN76Q4QZwaKk31lloHDg'),
 )
 
 driver.wait(fail_fast=True, timeout=5)
@@ -186,7 +186,14 @@ async def find_tranaction(message: types.Message, state: FSMContext) -> None:
 
 
 
+async def test(event, context):
+    await dp.start_polling(bot)
 
+
+
+
+
+asyncio.run(test({}, {}))
 
 
 
