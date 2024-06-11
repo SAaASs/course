@@ -23,7 +23,7 @@ class UserStates(StatesGroup):
 driver = ydb.Driver(
   endpoint='grpcs://ydb.serverless.yandexcloud.net:2135',
   database='/ru-central1/b1godpkhv4bhrc2ev0pn/etnu19lcc89d3ftuvqt8',
-  credentials=ydb.AuthTokenCredentials('t1.9euelZrJlIrJjpedxpSWzZ6dkMqdz-3rnpWay8mWmZSYzpuJjciJkp2TjIzl8_dZBmNM-e9XTHBD_t3z9xk1YEz571dMcEP-zef1656VmprHno_OnciNlcuPz56Xk8bL7_zF656VmprHno_OnciNlcuPz56Xk8bL.jJxzMdd06gJNGmaT0g_u2yeq9Awt8YQj7RQTn72Z5AsiQllK_sOHlOrkpPzjwItNsyuN76Q4QZwaKk31lloHDg'),
+  credentials=ydb.AuthTokenCredentials('t1.9euelZqQk5qWjZ6amJOSjZGLnJuXmO3rnpWay8mWmZSYzpuJjciJkp2TjIzl8_dwEGBM-e8XGBU9_N3z9zA_XUz57xcYFT38zef1656Vmp6NzYqJi5aMnM2Lyc6OlcjL7_zF656Vmp6NzYqJi5aMnM2Lyc6OlcjL.YL4_b9k8l7ht8GsxZuKAoo8rodItRoSG3WHKrX2widnMacarkIy-1AOF4OYu6t7hE9fEHxl9zNisjJp8OHoaBg'),
 )
 
 driver.wait(fail_fast=True, timeout=5)
